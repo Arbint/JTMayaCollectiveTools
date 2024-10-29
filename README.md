@@ -6,4 +6,5 @@ this is a collection of tools I developed to help with the animation process in 
 * download and unzip the plugin 
 
 * drag the install.mel to maya's viewport.
-
+## Update:
+Now support Maya 2025 and simple drag drop installation
