@@ -155,8 +155,14 @@ class ThreeJntChain:
 #                UI                #
 ####################################
 
-from PySide2.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton, QLineEdit, QHBoxLayout, QColorDialog
-from PySide2.QtGui import QDoubleValidator, QColor, QPainter, QPalette
+if int(mc.about(v=True)) <= 2024:
+    from PySide2.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton, QLineEdit, QHBoxLayout, QColorDialog
+    from PySide2.QtGui import QDoubleValidator, QColor, QPainter, QPalette
+else:
+    from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton, QLineEdit, QHBoxLayout, QColorDialog
+    from PySide6.QtGui import QDoubleValidator, QColor, QPainter, QPalette
+
+import MayaUtilities
 
 class ColorPickerWidget(QWidget):
     def __init__(self):
@@ -173,7 +179,10 @@ class ColorPickerWidget(QWidget):
         color = QColorDialog().getColor()
         #self.button.
 
-class ThreeJntChainWiget(QWidget):
+class ThreeJntChainWiget(MayaUtilities.QMayaWidget):
+    def GetWidgetHash(self):
+        return "THreeJntChainWidget1313123123JT"
+
     def __init__(self):
         super().__init__()
 

@@ -1,8 +1,15 @@
 import maya.cmds as mc
 
-from PySide2.QtCore import Signal, Qt
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QAbstractItemView, QPushButton, QLabel, QListWidget, QColorDialog, QSlider
-from PySide2.QtGui import QColor, QPainter, QBrush
+if int(mc.about(v=True)) <= 2024:
+    from PySide2.QtCore import Signal, Qt
+    from PySide2.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QAbstractItemView, QPushButton, QLabel, QListWidget, QColorDialog, QSlider
+    from PySide2.QtGui import QColor, QPainter, QBrush
+else:
+    from PySide6.QtCore import Signal, Qt
+    from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QAbstractItemView, QPushButton, QLabel, QListWidget, QColorDialog, QSlider
+    from PySide6.QtGui import QColor, QPainter, QBrush
+
+from MayaUtilities import QMayaWidget
 
 def GetCurrentFrame():
     return int(mc.currentTime(q=True))
@@ -203,7 +210,10 @@ class ColorPicker(QWidget):
         painter.setBrush(QBrush(self.color))
         painter.drawRect(0,0, self.width(), self.height())      
 
-class GhostWidget(QWidget):
+class GhostWidget(QMayaWidget):
+    def GetWidgetHash(self):
+        return "GhostWidget12313131JT"
+
     def __init__(self):
         super().__init__()
         self.ghost = Ghost()
