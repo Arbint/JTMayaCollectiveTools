@@ -55,5 +55,3 @@ def ImportMeshAndAnimation(meshPath, animDir):
             ImportAnimation(mesh, animPath)
 
 #ImportMeshAndAnimation("D:/ProfileRedirect/jili1/Downloads/out/Alex.fbx", "D:/ProfileRedirect/jili1/Downloads/out/anim")
-
-

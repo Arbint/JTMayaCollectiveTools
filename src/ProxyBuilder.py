@@ -1,5 +1,10 @@
 import maya.cmds as mc
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QPushButton
+if int(mc.about(v=True)) <= 2024:
+    from PySide2.QtWidgets import QWidget, QVBoxLayout, QPushButton
+else:
+    from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton
+
+from MayaUtilities import QMayaWidget
 
 def IsMesh(obj):
     shapes = mc.listRelatives(obj, s=True)
@@ -157,7 +162,10 @@ class BuildProxy:
         return dict
     
 
-class BuildProxyWidget(QWidget):
+class BuildProxyWidget(QMayaWidget):
+    def GetWidgetHash(self):
+        return "BuildProxyWidget1231312312JT"
+
     def __init__(self):
         super().__init__()
         self.masterLayout = QVBoxLayout()
@@ -174,5 +182,6 @@ class BuildProxyWidget(QWidget):
     def BuildProxyBtnClicked(self):
         self.builder.BuildProxyForSelectedmesh()
 
-buildProxyWidget = BuildProxyWidget()
-buildProxyWidget.show()
+def Run():
+    buildProxyWidget = BuildProxyWidget()
+    buildProxyWidget.show()

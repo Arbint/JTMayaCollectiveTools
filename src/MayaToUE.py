@@ -1,10 +1,17 @@
 import os
-from PySide2.QtCore import QRegExp, Signal
-from PySide2.QtGui import QIntValidator, QRegExpValidator
 import maya.cmds as mc
-from PySide2.QtWidgets import QCheckBox, QFileDialog, QLineEdit, QSizePolicy, QWidget, QPushButton, QListWidget, QAbstractItemView, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox
-import MayaPythonClass
+import MayaPythonAnimTools
 import remote_execution
+import MayaUtilities
+
+if int(mc.about(v=True)) <= 2024:
+    from PySide2.QtCore import QRegExp, Signal
+    from PySide2.QtGui import QIntValidator, QRegExpValidator
+    from PySide2.QtWidgets import QCheckBox, QFileDialog, QLineEdit, QSizePolicy, QWidget, QPushButton, QListWidget, QAbstractItemView, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox
+else:
+    from PySide6.QtCore import QRegExp, Signal
+    from PySide6.QtGui import QIntValidator, QRegExpValidator
+    from PySide6.QtWidgets import QCheckBox, QFileDialog, QLineEdit, QSizePolicy, QWidget, QPushButton, QListWidget, QAbstractItemView, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox
 
 class AnimClip:
     def __init__(self):
@@ -69,7 +76,7 @@ class MayaToUE:
         self.SendToUnreal()
     
     def SendToUnreal(self):
-        utilityPath = os.path.join(MayaPythonClass.srcDir, "UnrealUtilities.py")
+        utilityPath = os.path.join(MayaPythonAnimTools.srcDir, "UnrealUtilities.py")
         utilityPath = os.path.normpath(utilityPath)
 
         meshPath = self.GetSkeletalMeshSavePath().replace("\\", "/")
@@ -234,7 +241,10 @@ class AnimEntryWidget(QWidget):
     def EnableCheckboxToggled(self):
         self.entry.shouldExport = not self.entry.shouldExport
 
-class MayaToUEWidget(QWidget):
+class MayaToUEWidget(MayaUtilities.QMayaWidget):
+    def GetWidgetHash(self):
+        return "MayaToUEWidget123131231JT"
+
     def __init__(self):
         super().__init__()
         self.mayaToUE = MayaToUE()        
@@ -244,6 +254,7 @@ class MayaToUEWidget(QWidget):
         self.rootJntText = QLineEdit()
         self.rootJntText.setEnabled(False)
         self.masterLayout.addWidget(self.rootJntText)
+        self.setWindowTitle("Maya to UE")
 
         setSelectionAsRootJntBtn = QPushButton("Set Root Joint")
         setSelectionAsRootJntBtn.clicked.connect(self.SetSelectionAsRootJntBtnClicked)
@@ -350,5 +361,6 @@ class MayaToUEWidget(QWidget):
         else:
             self.rootJntText.setText(self.mayaToUE.rootJnt)
 
-mayaToUEWidget = MayaToUEWidget()
-mayaToUEWidget.show()
+def Run():
+    mayaToUEWidget = MayaToUEWidget()
+    mayaToUEWidget.show()
