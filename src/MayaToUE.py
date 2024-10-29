@@ -3,7 +3,7 @@ from PySide2.QtCore import QRegExp, Signal
 from PySide2.QtGui import QIntValidator, QRegExpValidator
 import maya.cmds as mc
 from PySide2.QtWidgets import QCheckBox, QFileDialog, QLineEdit, QSizePolicy, QWidget, QPushButton, QListWidget, QAbstractItemView, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox
-import MayaPythonClass
+import MayaPythonAnimTools
 import remote_execution
 
 class AnimClip:
@@ -69,7 +69,7 @@ class MayaToUE:
         self.SendToUnreal()
     
     def SendToUnreal(self):
-        utilityPath = os.path.join(MayaPythonClass.srcDir, "UnrealUtilities.py")
+        utilityPath = os.path.join(MayaPythonAnimTools.srcDir, "UnrealUtilities.py")
         utilityPath = os.path.normpath(utilityPath)
 
         meshPath = self.GetSkeletalMeshSavePath().replace("\\", "/")
@@ -350,5 +350,6 @@ class MayaToUEWidget(QWidget):
         else:
             self.rootJntText.setText(self.mayaToUE.rootJnt)
 
-mayaToUEWidget = MayaToUEWidget()
-mayaToUEWidget.show()
+def Run():
+    mayaToUEWidget = MayaToUEWidget()
+    mayaToUEWidget.show()

@@ -174,5 +174,6 @@ class BuildProxyWidget(QWidget):
     def BuildProxyBtnClicked(self):
         self.builder.BuildProxyForSelectedmesh()
 
-buildProxyWidget = BuildProxyWidget()
-buildProxyWidget.show()
+def Run():
+    buildProxyWidget = BuildProxyWidget()
+    buildProxyWidget.show()

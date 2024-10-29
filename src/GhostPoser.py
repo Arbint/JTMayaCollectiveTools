@@ -294,5 +294,6 @@ class GhostWidget(QWidget):
         for item in self.SrcMeshList.selectedItems():
             mc.select(item.text(), add=True)
 
-ghostWidget = GhostWidget()
-ghostWidget.show()
+def Run():
+    ghostWidget = GhostWidget()
+    ghostWidget.show()

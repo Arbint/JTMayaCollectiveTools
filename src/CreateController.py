@@ -226,5 +226,6 @@ class ThreeJntChainWiget(QWidget):
         self.threeJntChain.AutoFindJntsBasedOnSel()
         self.selectionDisplay.setText(f"{self.threeJntChain.root}, {self.threeJntChain.middle}, {self.threeJntChain.end}") 
 
-treeJntChainWidget = ThreeJntChainWiget()
-treeJntChainWidget.show()
+def Run():
+    treeJntChainWidget = ThreeJntChainWiget()
+    treeJntChainWidget.show()
