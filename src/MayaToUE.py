@@ -1,6 +1,6 @@
 import os
 import maya.cmds as mc
-import MayaPythonAnimTools
+import JTMayaCollectiveTools
 import remote_execution
 import MayaUtilities
 
@@ -9,8 +9,10 @@ if int(mc.about(v=True)) <= 2024:
     from PySide2.QtGui import QIntValidator, QRegExpValidator
     from PySide2.QtWidgets import QCheckBox, QFileDialog, QLineEdit, QSizePolicy, QWidget, QPushButton, QListWidget, QAbstractItemView, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox
 else:
-    from PySide6.QtCore import QRegExp, Signal
-    from PySide6.QtGui import QIntValidator, QRegExpValidator
+    from PySide6.QtCore import QRegularExpression as QRegExp
+    from PySide6.QtCore import Signal
+    from PySide6.QtGui import QIntValidator
+    from PySide6.QtGui import QRegularExpressionValidator as QRegExpValidator
     from PySide6.QtWidgets import QCheckBox, QFileDialog, QLineEdit, QSizePolicy, QWidget, QPushButton, QListWidget, QAbstractItemView, QLabel, QHBoxLayout, QVBoxLayout, QMessageBox
 
 class AnimClip:
