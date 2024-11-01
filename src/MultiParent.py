@@ -14,6 +14,16 @@ class MultiParent:
         self.leftHandJnt = 'Wrist_L'
         self.rightHandJnt = 'Wrist_R'
 
+        self.weaponPinningAttrName = "weaponPinning"
+        self.pinnerControllerOptions = ["global", "singleHanded", "rightHandDriven", "weaponDrivesHands"]
+        self.rightHandToWeaponWeightAttrName = "rightHandToWeapon"
+        self.leftHandToWeaponWeightAttrName = "leftHandToWeapon"
+
+        self.pinnedController = ""
+
+    def BuildMultiparentSystem(self):
+        self.pinnedController = self.MakePinnerController("weaponPinner", 10)
+        
 
     def MakePinnerController(self, name, size):
         mel.eval(f"curve -d 1 -n {name} -p -0.5 0.5 0.5 -p -0.5 -0.0130096 0.5 -p -0.5 -0.0130096 -0.5 -p -0.5 0.5 -0.5 -p -0.5 0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 -0.0130096 0.5 -p -0.5 -0.0130096 0.5 -p -0.5 -0.0130096 -0.5 -p 0.5 -0.0130096 -0.5 -p 0.5 -0.0130096 0.5 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p 0.5 0.5 -0.5 -p 0.5 -0.0130096 -0.5 -p 0 -0.502633 0 -p -0.5 -0.0130096 0.5 -p 0.5 -0.0130096 0.5 -p 0 -0.502633 0 -p -0.5 -0.0130096 -0.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -k 16 -k 17 -k 18 -k 19 -k 20 ;")
@@ -24,7 +34,21 @@ class MultiParent:
         grpName = name + "_grp"
         mc.group(offsetGrpName, n=grpName)
 
+        mc.addAttr(name, ln=self.weaponPinningAttrName, at="enum", en= ":".join(self.pinnerControllerOptions) + ":", k=True)
+        mc.addAttr(name, ln=self.rightHandToWeaponWeightAttrName, at="float", min=0, max=1, k=True)
+        mc.addAttr(name, ln=self.leftHandToWeaponWeightAttrName, at="float", min=0, max=1, k=True)
+        self.LockAndHideTransform(name)
+        self.LockAndHideVisiblity(name)
         return name, grpName, offsetGrpName
+
+    def LockAndHideTransform(self, objName):
+        lockAndHideAttrs = [".tx", ".ty", '.tz','.rx', '.ry', '.rz', '.sx', '.sy', '.sz']
+        for attr in lockAndHideAttrs:
+            mc.setAttr(objName + attr, channelBox=False, keyable=False, lock=True)
+
+    def LockAndHideVisiblity(self, objName):
+        mc.setAttr(objName + ".v", channelBox=False, keyable=False, lock=True)
+        
 
     def AssignSelectionAsCurrentPropCtrl(self):
         self.currentPropCtrl = mc.ls(sl=True)[0]
@@ -75,6 +99,15 @@ class MultiParentWidget(QMayaWidget):
         self.masterLayout = QVBoxLayout()
         self.setLayout(self.masterLayout)
         self.CreateInfoGatherSection()
+        self.CreateBuildSection()
+
+    def CreateBuildSection(self):
+        sectionLayout = QVBoxLayout()
+        self.masterLayout.addLayout(sectionLayout)
+        
+        buildBtn = QPushButton("Build Multi Parent")
+        buildBtn.clicked.connect(lambda : self.multiParent.BuildMultiparentSystem())
+        sectionLayout.addWidget(buildBtn)
 
     def CreateInfoGatherSection(self):
         currentProCtrlWidget = InfoAssignWidget("current prop controller", self.multiParent.currentPropCtrl, self.multiParent.AssignSelectionAsCurrentPropCtrl)
