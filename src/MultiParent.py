@@ -2,13 +2,17 @@ import maya.cmds as mc
 import maya.mel as mel
 
 from PySide2.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QGridLayout, QLabel, QPushButton, QListWidget, QFormLayout, QLineEdit
+from PySide2.QtCore import Signal
 from MayaUtilities import QMayaWidget
+
 
 class MultiParent:
     def __init__(self):
         self.currentPropCtrl = 'ac_axe_global'
         self.leftHandIKCtrl = ''
         self.rightHandIKCtrl = 'ikArm_R'
+        self.leftHandJnt = ''
+        self.rightHandJnt = ''
 
 
     def MakePinnerController(self, name, size):
@@ -29,6 +33,40 @@ class MultiParent:
     def AssignSelectionAsRightHandIkCtrl(self):
         self.rightHandIKCtrl = mc.ls(sl=True)[0]
         return self.rightHandIKCtrl
+
+    def AssignSelectionAsleftHandIkCtrl(self):
+        self.leftHandIKCtrl = mc.ls(sl=True)[0]
+        return self.leftHandIKCtrl
+
+    def AssignSelectionAsRightHandJnt(self):
+        self.rightHandJnt = mc.ls(sl=True)[0]
+        return self.rightHandJnt
+
+    def AssignSelectionAsLeftHandJnt(self):
+        self.leftHandJnt = mc.ls(sl=True)[0]
+        return self.leftHandJnt
+
+class InfoAssignWidget(QWidget):
+    def __init__(self, infoName, startVal, InfoPickedCallback):
+        super().__init__()
+        masterLayout = QGridLayout()
+        self.setLayout(masterLayout)
+
+        label = QLabel(f"{infoName}:")
+        self.propCurrentCtrlLineEdit = QLineEdit()
+        self.propCurrentCtrlLineEdit.setEnabled(False)
+        self.propCurrentCtrlLineEdit.setText(startVal)
+        assignPropCurrentCtrlBtn = QPushButton(f"Pick {infoName}") 
+        assignPropCurrentCtrlBtn.clicked.connect(
+            lambda : self.propCurrentCtrlLineEdit.setText(self.multiParent.AssignSelectionAsCurrentPropCtrl())
+            )
+    
+        masterLayout.addWidget(propCurrentCtrlLabel, 0, 0)
+        masterLayout.addWidget(self.propCurrentCtrlLineEdit, 0, 1)
+        masterLayout.addWidget(assignPropCurrentCtrlBtn, 0, 2)
+        
+
+
 
 class MultiParentWidget(QMayaWidget):
     def __init__(self):
@@ -72,7 +110,45 @@ class MultiParentWidget(QMayaWidget):
         sectionLayout.addWidget(self.rightHandIKCtrlLineEdit, 1, 1)
         sectionLayout.addWidget(assignRightHandIKCtrlBtn, 1, 2)
 
+        leftHandCtrlLabel = QLabel("left hand ik controller:")
+        self.leftHandIKCtrlLineEdit = QLineEdit()
+        self.leftHandIKCtrlLineEdit.setEnabled(False)
+        self.leftHandIKCtrlLineEdit.setText(self.multiParent.leftHandIKCtrl)
+        assignleftHandIKCtrlBtn = QPushButton("Pick left Hand ik Ctrl") 
+        assignleftHandIKCtrlBtn.clicked.connect(
+            lambda : self.leftHandIKCtrlLineEdit.setText(self.multiParent.AssignSelectionAsleftHandIkCtrl())
+            )
+    
+        sectionLayout.addWidget(leftHandCtrlLabel, 2, 0)
+        sectionLayout.addWidget(self.leftHandIKCtrlLineEdit, 2, 1)
+        sectionLayout.addWidget(assignleftHandIKCtrlBtn, 2, 2)
 
+
+        rightHandJntLabel = QLabel("right hand ik controller:")
+        self.rightHandJntLineEdit = QLineEdit()
+        self.rightHandJntLineEdit.setEnabled(False)
+        self.rightHandJntLineEdit.setText(self.multiParent.rightHandJnt)
+        assignRightHandJntBtn = QPushButton("Pick Right Hand ik Ctrl") 
+        assignRightHandJntBtn.clicked.connect(
+            lambda : self.rightHandJntLineEdit.setText(self.multiParent.AssignSelectionAsRightHandJnt())
+            )
+    
+        sectionLayout.addWidget(rightHandJntLabel, 1, 0)
+        sectionLayout.addWidget(self.rightHandJntLineEdit, 1, 1)
+        sectionLayout.addWidget(assignRightHandJntBtn, 1, 2)
+
+        leftHandJntLabel = QLabel("left hand ik controller:")
+        self.leftHandJntLineEdit = QLineEdit()
+        self.leftHandJntLineEdit.setEnabled(False)
+        self.leftHandJntLineEdit.setText(self.multiParent.leftHandJnt)
+        assignleftHandJntBtn = QPushButton("Pick left Hand ik Ctrl") 
+        assignleftHandJntBtn.clicked.connect(
+            lambda : self.leftHandJntLineEdit.setText(self.multiParent.AssignSelectionAsleftHandJnt())
+            )
+    
+        sectionLayout.addWidget(leftHandJntLabel, 2, 0)
+        sectionLayout.addWidget(self.leftHandJntLineEdit, 2, 1)
+        sectionLayout.addWidget(assignleftHandJntBtn, 2, 2)
 
 
 MultiParentWidget().show()
