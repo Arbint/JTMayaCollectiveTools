@@ -23,6 +23,11 @@ class MultiParent:
 
     def BuildMultiparentSystem(self):
         self.pinnedController = self.MakePinnerController("weaponPinner", 10)
+        print(f"duplicating: {self.currentPropCtrl}")
+        mc.select(self.currentPropCtrl)
+        weaponFollowsHandCtrl = self.currentPropCtrl + ""
+
+
         
 
     def MakePinnerController(self, name, size):
@@ -48,7 +53,6 @@ class MultiParent:
 
     def LockAndHideVisiblity(self, objName):
         mc.setAttr(objName + ".v", channelBox=False, keyable=False, lock=True)
-        
 
     def AssignSelectionAsCurrentPropCtrl(self):
         self.currentPropCtrl = mc.ls(sl=True)[0]
