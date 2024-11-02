@@ -14,15 +14,43 @@ class MultiParent:
         self.leftHandJnt = 'Wrist_L'
         self.rightHandJnt = 'Wrist_R'
 
-        self.weaponPinningAttrName = "weaponPinning"
+        self.propPiningAttrName = "pinning"
         self.pinnerControllerOptions = ["global", "singleHanded", "rightHandDriven", "weaponDrivesHands"]
         self.rightHandToWeaponWeightAttrName = "rightHandToWeapon"
         self.leftHandToWeaponWeightAttrName = "leftHandToWeapon"
 
         self.pinnedController = ""
 
+    def SetupControlVarientParentConstraint(self, variantSubfix, variantName, varientFollowGrp):
+        constraintSrcs = self.GetControlVariantParentConstraintSources(variantSubfix)
+        if not constraintSrcs:
+            return
+
+        mc.addAttr(variantName, ln=self.propPiningAttrName, at="enum", en= ":".join(constraintSrcs.keys()) + ":", k=True)
+        i = 0
+        for optionEnumName, constraintSrc in constraintSrcs.items():
+            parentConstraint = mc.parentConstraint(constraintSrc, varientFollowGrp, mo=False)[0]
+            mc.expression(s=f"{parentConstraint}.{constraintSrc}W{i}={variantName}.{self.propPiningAttrName}=={i}?1:0;")
+            i += 1
+
+    def GetControlVariantParentConstraintSources(self, variantSubfix):
+        if variantSubfix == "global" or variantSubfix == "weaponDrivesHands":
+            return None
+
+        if variantSubfix == "singleHanded":
+            return {"leftHand":self.leftHandJnt, "rightHand":self.rightHandJnt}
+
+        if variantSubfix == "rightHandDriven":
+            return {"rightHand":self.rightHandJnt}
+
+
     def BuildMultiparentSystem(self):
         self.pinnedController, _, _ = self.MakePinnerController("weaponPinner", 10)
+        leftHandNull = self.leftHandIKCtrl + "_Null"
+        leftHandConstNull = self.leftHandIKCtrl + "_ConstNull"
+        mc.group(self.leftHandIKCtrl, n=leftHandNull)
+        mc.group(leftHandNull, n=leftHandConstNull)
+        leftHandIkConstraint = mc.parentConstraint(leftHandConstNull, leftHandNull)[0]
 
         allCtrlGrps = self.propOrigCtrl + "_space_grp"
         mc.group(self.propOrigCtrl, n=allCtrlGrps)
@@ -33,11 +61,14 @@ class MultiParent:
 
         followParentConstraint = ""
         for i, variantSubfix in enumerate(self.pinnerControllerOptions):
-            variantCtrlName, variantCtrlGrpName, variantOutputName = self.MakePropControlVariant(variantSubfix)
+            variantCtrlName, variantCtrlGrpName, variantCtrlOffsetGrpName, variantOutputName = self.MakePropControlVariant(variantSubfix)
             followParentConstraint = mc.parentConstraint(variantOutputName, propOrigionalCtrlFollowGrp)[0]
-            mc.expression(s=f"{followParentConstraint}.{variantOutputName}W{i}={self.pinnedController}.{self.weaponPinningAttrName}=={i}?1:0;")
+            mc.expression(s=f"{followParentConstraint}.{variantOutputName}W{i}={self.pinnedController}.{self.propPiningAttrName}=={i}?1:0;")
+            mc.expression(s=f"{variantCtrlGrpName}.v={self.pinnedController}.{self.propPiningAttrName}=={i}?1:0;")
+            self.SetupControlVarientParentConstraint(variantSubfix, variantCtrlName, variantCtrlOffsetGrpName)
 
         mc.parent(self.propOrigCtrl, propOrigionalCtrlFollowGrp)
+        mc.setAttr(self.propOrigCtrl+".v", 0)
         mc.setAttr(self.propOrigCtrl+".translate", 0, 0, 0)
         mc.parent(propOrigionalCtrlFollowGrp, allCtrlGrps)
 
@@ -45,20 +76,19 @@ class MultiParent:
     def MakePropControlVariant(self, variantSubfix):
         mc.select(self.propOrigCtrl)
         variantCtrlName = self.propOrigCtrl + f"_{variantSubfix}"
+        variantCtrlOffsetGrpName = variantCtrlName + "_offset_grp"
         variantCtrlGrpName = variantCtrlName + "_grp"
         mc.duplicate(n=variantCtrlName)
-        mc.group(variantCtrlName, n=variantCtrlGrpName)
+        mc.group(variantCtrlName, n=variantCtrlOffsetGrpName)
+        mc.group(variantCtrlOffsetGrpName, n = variantCtrlGrpName)
         variantOutputName = variantCtrlName + "_output"
         mc.createNode("transform", name = variantOutputName)
         mc.matchTransform(variantOutputName, variantCtrlName)
         mc.parent(variantOutputName, variantCtrlName)
         mc.setAttr(variantOutputName+".translate", 0, 0, 0)
 
-        return variantCtrlName, variantCtrlGrpName, variantOutputName
+        return variantCtrlName, variantCtrlGrpName, variantCtrlOffsetGrpName, variantOutputName
         
-
-        
-
     def MakePinnerController(self, name, size):
         mel.eval(f"curve -d 1 -n {name} -p -0.5 0.5 0.5 -p -0.5 -0.0130096 0.5 -p -0.5 -0.0130096 -0.5 -p -0.5 0.5 -0.5 -p -0.5 0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 -0.0130096 0.5 -p -0.5 -0.0130096 0.5 -p -0.5 -0.0130096 -0.5 -p 0.5 -0.0130096 -0.5 -p 0.5 -0.0130096 0.5 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p 0.5 0.5 -0.5 -p 0.5 -0.0130096 -0.5 -p 0 -0.502633 0 -p -0.5 -0.0130096 0.5 -p 0.5 -0.0130096 0.5 -p 0 -0.502633 0 -p -0.5 -0.0130096 -0.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -k 16 -k 17 -k 18 -k 19 -k 20 ;")
         mc.scale(size, size, size, name)
@@ -68,7 +98,7 @@ class MultiParent:
         grpName = name + "_grp"
         mc.group(offsetGrpName, n=grpName)
 
-        mc.addAttr(name, ln=self.weaponPinningAttrName, at="enum", en= ":".join(self.pinnerControllerOptions) + ":", k=True)
+        mc.addAttr(name, ln=self.propPiningAttrName, at="enum", en= ":".join(self.pinnerControllerOptions) + ":", k=True)
         mc.addAttr(name, ln=self.rightHandToWeaponWeightAttrName, at="float", min=0, max=1, k=True)
         mc.addAttr(name, ln=self.leftHandToWeaponWeightAttrName, at="float", min=0, max=1, k=True)
         self.LockAndHideTransform(name)
