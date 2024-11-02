@@ -8,7 +8,7 @@ from MayaUtilities import QMayaWidget
 
 class MultiParent:
     def __init__(self):
-        self.currentPropCtrl = 'ac_axe_global'
+        self.propOrigCtrl = 'ac_axe'
         self.leftHandIKCtrl = 'IKArm_L'
         self.rightHandIKCtrl = 'IkArm_R'
         self.leftHandJnt = 'Wrist_L'
@@ -22,11 +22,40 @@ class MultiParent:
         self.pinnedController = ""
 
     def BuildMultiparentSystem(self):
-        self.pinnedController = self.MakePinnerController("weaponPinner", 10)
-        print(f"duplicating: {self.currentPropCtrl}")
-        mc.select(self.currentPropCtrl)
-        weaponFollowsHandCtrl = self.currentPropCtrl + ""
+        self.pinnedController, _, _ = self.MakePinnerController("weaponPinner", 10)
 
+        allCtrlGrps = self.propOrigCtrl + "_space_grp"
+        mc.group(self.propOrigCtrl, n=allCtrlGrps)
+
+        propOrigionalCtrlFollowGrp = self.propOrigCtrl + "_orig_follow_grp"
+        mc.createNode("transform", n = propOrigionalCtrlFollowGrp)
+        mc.matchTransform(propOrigionalCtrlFollowGrp, self.propOrigCtrl)
+
+        followParentConstraint = ""
+        for i, variantSubfix in enumerate(self.pinnerControllerOptions):
+            variantCtrlName, variantCtrlGrpName, variantOutputName = self.MakePropControlVariant(variantSubfix)
+            followParentConstraint = mc.parentConstraint(variantOutputName, propOrigionalCtrlFollowGrp)[0]
+            mc.expression(s=f"{followParentConstraint}.{variantOutputName}W{i}={self.pinnedController}.{self.weaponPinningAttrName}=={i}?1:0;")
+
+        mc.parent(self.propOrigCtrl, propOrigionalCtrlFollowGrp)
+        mc.setAttr(self.propOrigCtrl+".translate", 0, 0, 0)
+        mc.parent(propOrigionalCtrlFollowGrp, allCtrlGrps)
+
+
+    def MakePropControlVariant(self, variantSubfix):
+        mc.select(self.propOrigCtrl)
+        variantCtrlName = self.propOrigCtrl + f"_{variantSubfix}"
+        variantCtrlGrpName = variantCtrlName + "_grp"
+        mc.duplicate(n=variantCtrlName)
+        mc.group(variantCtrlName, n=variantCtrlGrpName)
+        variantOutputName = variantCtrlName + "_output"
+        mc.createNode("transform", name = variantOutputName)
+        mc.matchTransform(variantOutputName, variantCtrlName)
+        mc.parent(variantOutputName, variantCtrlName)
+        mc.setAttr(variantOutputName+".translate", 0, 0, 0)
+
+        return variantCtrlName, variantCtrlGrpName, variantOutputName
+        
 
         
 
@@ -55,8 +84,8 @@ class MultiParent:
         mc.setAttr(objName + ".v", channelBox=False, keyable=False, lock=True)
 
     def AssignSelectionAsCurrentPropCtrl(self):
-        self.currentPropCtrl = mc.ls(sl=True)[0]
-        return self.currentPropCtrl
+        self.propOrigCtrl = mc.ls(sl=True)[0]
+        return self.propOrigCtrl
 
     def AssignSelectionAsRightHandIkCtrl(self):
         self.rightHandIKCtrl = mc.ls(sl=True)[0]
@@ -114,7 +143,7 @@ class MultiParentWidget(QMayaWidget):
         sectionLayout.addWidget(buildBtn)
 
     def CreateInfoGatherSection(self):
-        currentProCtrlWidget = InfoAssignWidget("current prop controller", self.multiParent.currentPropCtrl, self.multiParent.AssignSelectionAsCurrentPropCtrl)
+        currentProCtrlWidget = InfoAssignWidget("current prop controller", self.multiParent.propOrigCtrl, self.multiParent.AssignSelectionAsCurrentPropCtrl)
         self.masterLayout.addWidget(currentProCtrlWidget)
 
         rightHandCtrlWidget = InfoAssignWidget("right hand ik controller", self.multiParent.rightHandIKCtrl, self.multiParent.AssignSelectionAsRightHandIkCtrl)
