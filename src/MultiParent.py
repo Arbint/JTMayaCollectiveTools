@@ -308,7 +308,8 @@ class MultiParentWidget(QMayaWidget):
         self.masterLayout.addWidget(FloatSliderGroup("Pinner Controller Size", self.multiParent.pinnerSize, self.multiParent.SetPinnerControllerSize))
         self.masterLayout.addWidget(FloatSliderGroup("Slider Size", self.multiParent.sliderSize, self.multiParent.SetSliderSize))
 
-MultiParentWidget().show()
+def Run():
+    MultiParentWidget().show()
 
         
 

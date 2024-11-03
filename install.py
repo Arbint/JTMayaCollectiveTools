@@ -31,3 +31,4 @@ def Install():
     AddShelfBtn("GhostPoser")
     AddShelfBtn("MayaToUE")
     AddShelfBtn("ProxyBuilder")
+    AddShelfBtn("MultiParent")
