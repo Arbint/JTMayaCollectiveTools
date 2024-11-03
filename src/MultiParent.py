@@ -1,8 +1,9 @@
 import maya.cmds as mc
 import maya.mel as mel
 
-from PySide2.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QGridLayout, QLabel, QPushButton, QListWidget, QFormLayout, QLineEdit
+from PySide2.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QGridLayout, QLabel, QPushButton, QListWidget, QFormLayout, QLineEdit, QSlider
 from PySide2.QtCore import Signal
+from PySide2.QtCore import Qt
 from MayaUtilities import QMayaWidget
 
 
@@ -10,9 +11,11 @@ class MultiParent:
     def __init__(self):
         self.propOrigCtrl = 'ac_axe'
         self.leftHandIKCtrl = 'IKArm_L'
-        self.rightHandIKCtrl = 'IkArm_R'
+        self.rightHandIKCtrl = 'IKArm_R'
         self.leftHandJnt = 'Wrist_L'
         self.rightHandJnt = 'Wrist_R'
+        self.sliderSize = 5
+        self.pinnerSize = 1
 
         self.propPiningAttrName = "pinning"
         self.pinnerControllerOptions = ["global", "singleHanded", "rightHandDriven", "weaponDrivesHands"]
@@ -20,6 +23,12 @@ class MultiParent:
         self.leftHandToWeaponWeightAttrName = "leftHandToWeapon"
 
         self.pinnedController = ""
+
+    def SetPinnerControllerSize(self, newSize):
+        self.pinnerSize = newSize
+
+    def SetSliderSize(self, newSize):
+        self.sliderSize = newSize
 
     def SetupControlVarientParentConstraint(self, variantSubfix, variantName, varientFollowGrp):
         constraintSrcs = self.GetControlVariantParentConstraintSources(variantSubfix)
@@ -29,7 +38,7 @@ class MultiParent:
         mc.addAttr(variantName, ln=self.propPiningAttrName, at="enum", en= ":".join(constraintSrcs.keys()) + ":", k=True)
         i = 0
         for optionEnumName, constraintSrc in constraintSrcs.items():
-            parentConstraint = mc.parentConstraint(constraintSrc, varientFollowGrp, mo=False)[0]
+            parentConstraint = mc.parentConstraint(constraintSrc, varientFollowGrp, mo=variantSubfix != "singleHanded")[0]
             mc.expression(s=f"{parentConstraint}.{constraintSrc}W{i}={variantName}.{self.propPiningAttrName}=={i}?1:0;")
             i += 1
 
@@ -45,12 +54,10 @@ class MultiParent:
 
 
     def BuildMultiparentSystem(self):
-        self.pinnedController, _, _ = self.MakePinnerController("weaponPinner", 10)
-        leftHandNull = self.leftHandIKCtrl + "_Null"
-        leftHandConstNull = self.leftHandIKCtrl + "_ConstNull"
-        mc.group(self.leftHandIKCtrl, n=leftHandNull)
-        mc.group(leftHandNull, n=leftHandConstNull)
-        leftHandIkConstraint = mc.parentConstraint(leftHandConstNull, leftHandNull)[0]
+        self.pinnedController, pinnedControllerGrp, _ = self.MakePinnerController("weaponPinner", 10)
+
+        leftHandFollowGrp,leftHandConstNull = self.CreateHandFollowGrps(self.leftHandIKCtrl)
+        rightHandFollowGrp, rightHandConstNull = self.CreateHandFollowGrps(self.rightHandIKCtrl)
 
         allCtrlGrps = self.propOrigCtrl + "_space_grp"
         mc.group(self.propOrigCtrl, n=allCtrlGrps)
@@ -60,6 +67,9 @@ class MultiParent:
         mc.matchTransform(propOrigionalCtrlFollowGrp, self.propOrigCtrl)
 
         followParentConstraint = ""
+        leftHandFollowPropSlider = ""
+        leftHandFollowRightHandSlider = ""
+        rightHandSlider = ""
         for i, variantSubfix in enumerate(self.pinnerControllerOptions):
             variantCtrlName, variantCtrlGrpName, variantCtrlOffsetGrpName, variantOutputName = self.MakePropControlVariant(variantSubfix)
             followParentConstraint = mc.parentConstraint(variantOutputName, propOrigionalCtrlFollowGrp)[0]
@@ -67,11 +77,94 @@ class MultiParent:
             mc.expression(s=f"{variantCtrlGrpName}.v={self.pinnedController}.{self.propPiningAttrName}=={i}?1:0;")
             self.SetupControlVarientParentConstraint(variantSubfix, variantCtrlName, variantCtrlOffsetGrpName)
 
+            if variantSubfix == "rightHandDriven" or variantSubfix == "weaponDrivesHands":
+                leftSlider, rightSlider = self.MakeHandFollowSliders(variantSubfix, variantCtrlName)
+                if rightSlider:
+                    rightHandSlider = rightSlider
+                    leftHandFollowPropSlider = leftSlider
+                else:
+                    leftHandFollowRightHandSlider = leftSlider
+
+                
+        self.SetupRightHandFollow(rightHandConstNull, rightHandFollowGrp, rightHandSlider) 
+        leftHandFollowSliderOutputGrp = self.SetupLeftHandFollow(leftHandConstNull, leftHandFollowGrp, leftHandFollowPropSlider, leftHandFollowRightHandSlider)
+        mc.parent(leftHandFollowSliderOutputGrp, allCtrlGrps)
+
         mc.parent(self.propOrigCtrl, propOrigionalCtrlFollowGrp)
         mc.setAttr(self.propOrigCtrl+".v", 0)
         mc.setAttr(self.propOrigCtrl+".translate", 0, 0, 0)
         mc.parent(propOrigionalCtrlFollowGrp, allCtrlGrps)
+        mc.parent(pinnedControllerGrp, propOrigionalCtrlFollowGrp)
 
+    def SetupRightHandFollow(self, rightHandConstNullName, rightHandFollowGrp, rightHandSlider):
+        sliderOutput = self.CreateOutputTransform(rightHandSlider)
+        parentConstraint = mc.parentConstraint(sliderOutput, rightHandFollowGrp)[0]
+        mc.expression(s=f"{parentConstraint}.{rightHandConstNullName}W0=1-({self.pinnedController}.{self.propPiningAttrName}==3?{self.pinnedController}.{self.rightHandToWeaponWeightAttrName}:0);")
+        mc.expression(s=f"{parentConstraint}.{sliderOutput}W1={self.pinnedController}.{self.propPiningAttrName}==3?{self.pinnedController}.{self.rightHandToWeaponWeightAttrName}:0;")
+
+    def SetupLeftHandFollow(self, leftHandConstNullName, leftHandFollowGrp, leftHandFollowPropSlider, leftHandFollowRightHandSlider):
+        leftHandFollowSliderOutput = leftHandFollowGrp + "_slider_ouput"
+        mc.createNode("transform", name = leftHandFollowSliderOutput)
+        leftHandFollowSliderOutputGrp = leftHandFollowSliderOutput + "_grp"
+        mc.group(leftHandFollowSliderOutput, n=leftHandFollowSliderOutputGrp)
+        mc.matchTransform(leftHandFollowSliderOutputGrp, leftHandFollowPropSlider) 
+
+        mc.parentConstraint(leftHandFollowPropSlider, leftHandFollowSliderOutputGrp)
+        sliderParentConstraint = mc.parentConstraint(leftHandFollowRightHandSlider, leftHandFollowSliderOutputGrp)[0]
+        mc.expression(s=f"{sliderParentConstraint}.{leftHandFollowPropSlider}W0={self.pinnedController}.{self.propPiningAttrName}==3?1:0;")
+        mc.expression(s=f"{sliderParentConstraint}.{leftHandFollowRightHandSlider}W1=1-({self.pinnedController}.{self.propPiningAttrName}==3?1:0);")
+
+        parentConstraint = mc.parentConstraint(leftHandFollowSliderOutput, leftHandFollowGrp)[0]
+        mc.expression(s=f"{parentConstraint}.{leftHandConstNullName}W0=1-({self.pinnedController}.{self.propPiningAttrName}>=2?{self.pinnedController}.{self.leftHandToWeaponWeightAttrName}:0);")
+        mc.expression(s=f"{parentConstraint}.{leftHandFollowSliderOutput}W1={self.pinnedController}.{self.propPiningAttrName}>=2?{self.pinnedController}.{self.leftHandToWeaponWeightAttrName}:0;")
+
+        return leftHandFollowSliderOutputGrp
+
+    def CreateHandFollowGrps(self, handName):
+        handNull = handName + "_Null"
+        handConstNull = handName + "_ConstNull"
+        mc.group(handName, n=handNull)
+        mc.group(handNull, n=handConstNull)
+        handConstraint = mc.parentConstraint(handConstNull, handNull)[0]
+        return handNull, handConstNull
+
+    def MakeHandFollowSliders(self, variantSubFix, varientName):
+        leftHandCtrl = None
+        rightHandCtrl = None
+        if variantSubFix == "rightHandDriven": 
+            leftHandCtrl = variantSubFix + "_l_hand_slider"
+            self.MakeSlider(varientName, leftHandCtrl)
+
+        if variantSubFix == "weaponDrivesHands":
+            leftHandCtrl = variantSubFix + "_l_hand_slider"
+            rightHandCtrl = variantSubFix + "_r_hand_slider"
+            self.MakeSlider(varientName, leftHandCtrl)
+            self.MakeSlider(varientName, rightHandCtrl)
+
+        return leftHandCtrl, rightHandCtrl
+
+    def MakeSlider(self, sliderParent, sliderName):
+        mel.eval(f"curve -d 1 -n {sliderName} -p -5 0.5 0.5 -p 5 0.5 0.5 -p 5 -0.5 0.5 -p -5 -0.5 0.5 -p -5 0.5 0.5 -p -5 0.5 -0.5 -p 5 0.5 -0.5 -p 5 0.5 0.5 -p 5 0.5 -0.5 -p 5 -0.5 -0.5 -p 5 -0.5 0.5 -p 5 -0.5 -0.5 -p -5 -0.5 -0.5 -p -5 0.5 -0.5 -p -5 -0.5 -0.5 -p -5 -0.5 0.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 ;")
+
+        mc.scale(self.sliderSize, self.sliderSize, self.sliderSize, sliderName)
+        mc.makeIdentity(sliderName, apply=True)
+
+        sliderOffsetGrpName = sliderName + "_offset_grp"
+        sliderGrpName = sliderName + "_grp"
+        mc.group(sliderName, n=sliderOffsetGrpName)
+        mc.group(sliderOffsetGrpName, n = sliderGrpName)
+        mc.parent(sliderGrpName,sliderParent)
+        mc.setAttr(f"{sliderGrpName}.translate", 0, 0, 0)
+        mc.setAttr(f"{sliderGrpName}.rotate", 0, 0, 0)
+        return sliderName, sliderGrpName, sliderOffsetGrpName
+
+    def CreateOutputTransform(self, controllerName):
+        outputName = controllerName + "_output"
+        mc.createNode("transform", name = outputName)
+        mc.parent(outputName, controllerName)
+        mc.setAttr(outputName+".translate", 0, 0, 0)
+        mc.setAttr(outputName+".rotate", 0, 0, 0)
+        return outputName
 
     def MakePropControlVariant(self, variantSubfix):
         mc.select(self.propOrigCtrl)
@@ -81,12 +174,7 @@ class MultiParent:
         mc.duplicate(n=variantCtrlName)
         mc.group(variantCtrlName, n=variantCtrlOffsetGrpName)
         mc.group(variantCtrlOffsetGrpName, n = variantCtrlGrpName)
-        variantOutputName = variantCtrlName + "_output"
-        mc.createNode("transform", name = variantOutputName)
-        mc.matchTransform(variantOutputName, variantCtrlName)
-        mc.parent(variantOutputName, variantCtrlName)
-        mc.setAttr(variantOutputName+".translate", 0, 0, 0)
-
+        variantOutputName = self.CreateOutputTransform(variantCtrlName) 
         return variantCtrlName, variantCtrlGrpName, variantCtrlOffsetGrpName, variantOutputName
         
     def MakePinnerController(self, name, size):
@@ -101,8 +189,13 @@ class MultiParent:
         mc.addAttr(name, ln=self.propPiningAttrName, at="enum", en= ":".join(self.pinnerControllerOptions) + ":", k=True)
         mc.addAttr(name, ln=self.rightHandToWeaponWeightAttrName, at="float", min=0, max=1, k=True)
         mc.addAttr(name, ln=self.leftHandToWeaponWeightAttrName, at="float", min=0, max=1, k=True)
+
+        mc.scale(self.pinnerSize, self.pinnerSize, self.pinnerSize, name)
+        mc.makeIdentity(name, apply=True)
+
         self.LockAndHideTransform(name)
         self.LockAndHideVisiblity(name)
+
         return name, grpName, offsetGrpName
 
     def LockAndHideTransform(self, objName):
@@ -151,6 +244,30 @@ class InfoAssignWidget(QWidget):
         masterLayout.addWidget(label, 0, 0)
         masterLayout.addWidget(self.infoLineEdit, 0, 1)
         masterLayout.addWidget(assignBtn, 0, 2)
+    
+class FloatSliderGroup(QWidget):
+    def __init__(self, infoName, startVal, InfoPickedCallback):
+        super().__init__()
+        self.InfoPickedCallback = InfoPickedCallback
+        masterLayout = QHBoxLayout()
+        self.setLayout(masterLayout)
+
+        masterLayout.addWidget(QLabel(infoName))
+        self.slider = QSlider()
+        self.slider.setValue(startVal)
+        self.slider.setOrientation(Qt.Horizontal)
+        self.slider.valueChanged.connect(self.ValueChanged)
+
+        masterLayout.addWidget(self.slider)
+
+        self.valueLabel = QLabel()
+        self.valueLabel.setText(str(startVal))
+        masterLayout.addWidget(self.valueLabel)
+
+    def ValueChanged(self, newValue):
+        self.InfoPickedCallback(newValue)
+        self.valueLabel.setText(str(newValue))
+
         
 class MultiParentWidget(QMayaWidget):
     def __init__(self):
@@ -188,6 +305,8 @@ class MultiParentWidget(QMayaWidget):
         leftHandJntWidget = InfoAssignWidget("left hand jnt", self.multiParent.leftHandJnt, self.multiParent.AssignSelectionAsLeftHandJnt)
         self.masterLayout.addWidget(leftHandJntWidget)
 
+        self.masterLayout.addWidget(FloatSliderGroup("Pinner Controller Size", self.multiParent.pinnerSize, self.multiParent.SetPinnerControllerSize))
+        self.masterLayout.addWidget(FloatSliderGroup("Slider Size", self.multiParent.sliderSize, self.multiParent.SetSliderSize))
 
 MultiParentWidget().show()
 
