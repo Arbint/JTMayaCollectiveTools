@@ -78,7 +78,7 @@ class MayaToUE:
         self.SendToUnreal()
     
     def SendToUnreal(self):
-        utilityPath = os.path.join(MayaPythonAnimTools.srcDir, "UnrealUtilities.py")
+        utilityPath = os.path.join(JTMayaCollectiveTools.srcDir, "UnrealUtilities.py")
         utilityPath = os.path.normpath(utilityPath)
 
         meshPath = self.GetSkeletalMeshSavePath().replace("\\", "/")
