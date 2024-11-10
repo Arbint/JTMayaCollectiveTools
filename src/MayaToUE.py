@@ -88,7 +88,7 @@ class MayaToUE:
         with open(utilityPath, 'r') as utility:
             commands = utility.readlines()
 
-        commands.append(f"ImportMeshAndAnimation(\'{meshPath}\', \'{animDir}\')") 
+        commands.append(f"\nImportMeshAndAnimation(\'{meshPath}\', \'{animDir}\')") 
 
         command = "".join(commands)
 
