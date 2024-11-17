@@ -32,3 +32,4 @@ def Install():
     AddShelfBtn("MayaToUE")
     AddShelfBtn("ProxyBuilder")
     AddShelfBtn("MultiParent")
+    AddShelfBtn("MultiSwitch")

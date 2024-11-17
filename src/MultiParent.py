@@ -9,6 +9,7 @@ from MayaUtilities import QMayaWidget
 
 class MultiParent:
     def __init__(self):
+        self.propNameBase = "prop"
         self.propOrigCtrl = 'ac_axe'
         self.leftHandIKCtrl = 'IKArm_L'
         self.rightHandIKCtrl = 'IKArm_R'
@@ -23,6 +24,9 @@ class MultiParent:
         self.leftHandToWeaponWeightAttrName = "leftHandToWeapon"
 
         self.pinnedController = ""
+
+    def SetPropNameBase(self, newNameBase):
+        self.propNameBase = newNameBase
 
     def SetPinnerControllerSize(self, newSize):
         self.pinnerSize = newSize
@@ -54,7 +58,7 @@ class MultiParent:
 
 
     def BuildMultiparentSystem(self):
-        self.pinnedController, pinnedControllerGrp, _ = self.MakePinnerController("weaponPinner", 10)
+        self.pinnedController, pinnedControllerGrp, _ = self.MakePinnerController(self.propNameBase + "_weaponPinner", 10)
 
         leftHandFollowGrp,leftHandConstNull = self.CreateHandFollowGrps(self.leftHandIKCtrl)
         rightHandFollowGrp, rightHandConstNull = self.CreateHandFollowGrps(self.rightHandIKCtrl)
@@ -121,8 +125,8 @@ class MultiParent:
         return leftHandFollowSliderOutputGrp
 
     def CreateHandFollowGrps(self, handName):
-        handNull = handName + "_Null"
-        handConstNull = handName + "_ConstNull"
+        handNull =f"{handName}_{self.propNameBase}_null"
+        handConstNull = f"{handName}_{self.propNameBase}_ConstNull"
         mc.group(handName, n=handNull)
         mc.group(handNull, n=handConstNull)
         handConstraint = mc.parentConstraint(handConstNull, handNull)[0]
@@ -132,12 +136,12 @@ class MultiParent:
         leftHandCtrl = None
         rightHandCtrl = None
         if variantSubFix == "rightHandDriven": 
-            leftHandCtrl = variantSubFix + "_l_hand_slider"
+            leftHandCtrl = f"{self.propNameBase}_{variantSubFix}_l_hand_slider"
             self.MakeSlider(varientName, leftHandCtrl)
 
         if variantSubFix == "weaponDrivesHands":
-            leftHandCtrl = variantSubFix + "_l_hand_slider"
-            rightHandCtrl = variantSubFix + "_r_hand_slider"
+            leftHandCtrl = f"{self.propNameBase}_{variantSubFix}_l_hand_slider"
+            rightHandCtrl =f"{self.propNameBase}_{variantSubFix}_r_hand_slider"
             self.MakeSlider(varientName, leftHandCtrl)
             self.MakeSlider(varientName, rightHandCtrl)
 
@@ -290,6 +294,12 @@ class MultiParentWidget(QMayaWidget):
         sectionLayout.addWidget(buildBtn)
 
     def CreateInfoGatherSection(self):
+        self.propNameLabel = QLabel("Prop Name:") 
+        self.masterLayout.addWidget(self.propNameLabel)
+        self.propNameLineEdit = QLineEdit(self.multiParent.propNameBase)
+        self.propNameLineEdit.textEdited.connect(self.PropNameUpdated)
+        self.masterLayout.addWidget(self.propNameLineEdit)
+
         currentProCtrlWidget = InfoAssignWidget("current prop controller", self.multiParent.propOrigCtrl, self.multiParent.AssignSelectionAsCurrentPropCtrl)
         self.masterLayout.addWidget(currentProCtrlWidget)
 
@@ -307,6 +317,9 @@ class MultiParentWidget(QMayaWidget):
 
         self.masterLayout.addWidget(FloatSliderGroup("Pinner Controller Size", self.multiParent.pinnerSize, self.multiParent.SetPinnerControllerSize))
         self.masterLayout.addWidget(FloatSliderGroup("Slider Size", self.multiParent.sliderSize, self.multiParent.SetSliderSize))
+
+    def PropNameUpdated(self):
+        self.multiParent.SetPropNameBase(self.propNameLineEdit.text())
 
 def Run():
     MultiParentWidget().show()
