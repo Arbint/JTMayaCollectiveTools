@@ -174,6 +174,9 @@ class MultiSwitchGUI(QMayaWidget):
         if entryWidget:
             entryWidget.deleteLater()
 
+    def GetWidgetHash(self):
+        return "JTMulitySwitch4162025951"
+
 def Run():
     MultiSwitchGUI().show() 
 
