@@ -321,6 +321,9 @@ class MultiParentWidget(QMayaWidget):
     def PropNameUpdated(self):
         self.multiParent.SetPropNameBase(self.propNameLineEdit.text())
 
+    def GetWidgetHash(self):
+        return "JTMultiParent4162025953"
+
 def Run():
     MultiParentWidget().show()
 
