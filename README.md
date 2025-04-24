@@ -8,3 +8,9 @@ this is a collection of tools I developed to help with the animation process in 
 * drag the install.mel to maya's viewport.
 ## Update:
 Now support Maya 2025 and simple drag drop installation
+
+## TODO:
+when importing to unreal, looks like the objects we import can have any order, so importTask.GetObjects()[0] may not be the skeletal mesh
+
+## Unreal Remote_Excution.py:
+C:\Program Files\Epic Games\UE_5.5\Engine\Plugins\Experimental\PythonScriptPlugin\Content\Python
